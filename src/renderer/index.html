@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Content-Security-Policy 由 Electron 的 contextIsolation 提供保护，
+      不在此处设置。渲染进程通过 preload 脚本的 contextBridge 与主进程通信。
+    -->
+    <title>个人知识库 Agent</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!--
+      type="module" 告知 Vite 此脚本为 ES Module 入口，
+      开发和生产构建均由 Vite 处理。
+    -->
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>
