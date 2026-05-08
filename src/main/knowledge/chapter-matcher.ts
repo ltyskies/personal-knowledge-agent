@@ -112,7 +112,13 @@ export async function matchChapters(knowledgeItems: KnowledgeItem[], index: Inde
     }));
   }
 
-  const prompt = buildMatchPrompt(knowledgeItems, chapters);
+  // 限制候选章节数量，防止 prompt 超出上下文窗口
+  const MAX_CANDIDATE_CHAPTERS = 50;
+  const truncatedChapters = chapters.length > MAX_CANDIDATE_CHAPTERS
+    ? chapters.slice(0, MAX_CANDIDATE_CHAPTERS)
+    : chapters;
+
+  const prompt = buildMatchPrompt(knowledgeItems, truncatedChapters);
 
   const messages: Message[] = [
     {

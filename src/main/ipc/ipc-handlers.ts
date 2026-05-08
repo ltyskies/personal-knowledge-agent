@@ -25,9 +25,10 @@ import { existsSync, mkdirSync } from 'fs';
 import { loadConfig, saveConfig } from '../storage/config';
 import { readMarkdownFile, resolveChapter, writeChapterContent } from '../knowledge/file-system';
 import { getOrBuildIndex, buildIndex, saveIndex } from '../knowledge/index-builder';
-import { chatSync, createChatModel, toLangChainMessages, StreamError } from '../ai/ai-client';
+import { chatSync, createChatModel, toLangChainMessages, StreamError, estimateTokenCount } from '../ai/ai-client';
 import { runAgentLoop } from '../ai/agent-loop';
 import { KNOWLEDGE_BASE_TOOLS } from '../ai/tools';
+import { compressConversationMessages, clearCompressionCache } from '../ai/context-compressor';
 import { matchChapters } from '../knowledge/chapter-matcher';
 import { mergeChapter } from '../knowledge/knowledge-merger';
 import { getStatus, commit, initRepo } from '../git/git-ops';
@@ -108,10 +109,18 @@ export function registerHandlers(): void {
       const chatModel = createChatModel(config.api.baseURL, config.api.key, config.api.model);
       const lcMessages = toLangChainMessages(messages);
 
+      // 上下文压缩：对话过长时自动生成摘要 + 滑动窗口
+      const contextWindow = config.api.contextWindow || 16000;
+      const compressedMessages = await compressConversationMessages(
+        chatModel,
+        lcMessages,
+        contextWindow,
+      );
+
       const agentStream = runAgentLoop(
         chatModel,
         KNOWLEDGE_BASE_TOOLS,
-        lcMessages,
+        compressedMessages,
         abortController.signal,
       );
 
@@ -167,9 +176,17 @@ export function registerHandlers(): void {
   ipcMain.handle('chat:extract', async (_event, messages: Message[]): Promise<KnowledgeItem[]> => {
     const config = loadConfig();
 
-    const conversation = messages
+    let conversation = messages
       .map((m) => `${m.role === 'user' ? '用户' : 'AI'}: ${m.content}`)
       .join('\n\n');
+
+    // 长度保护：截断超长对话，仅保留最近 60% 窗口的内容
+    const contextWindow = config.api.contextWindow || 16000;
+    const maxConvChars = Math.floor(contextWindow * 0.6 * 2.5);
+    if (conversation.length > maxConvChars) {
+      conversation = '[对话过长已截断，仅保留最近部分]\n\n' +
+        conversation.slice(conversation.length - maxConvChars);
+    }
 
     const systemPrompt = `你是一个知识提取助手。基于用户与AI的对话，提取值得记录的知识点（最多3条）。
 

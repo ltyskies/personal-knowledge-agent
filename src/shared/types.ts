@@ -18,6 +18,8 @@ export interface APIConfig {
   baseURL: string;
   key: string;
   model: string;
+  /** 模型上下文窗口大小（tokens），用于自动压缩决策。默认 16000 */
+  contextWindow?: number;
 }
 
 /** 章节匹配策略参数 */

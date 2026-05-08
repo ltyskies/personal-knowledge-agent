@@ -16,6 +16,7 @@ import type { ChatOpenAI } from '@langchain/openai';
 import type { StructuredTool } from '@langchain/core/tools';
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages';
 import type { ToolCallEvent, ToolResultEvent } from '../../shared/types';
+import { truncateToolResult, estimateMessagesTokenCount } from './context-compressor';
 
 export interface AgentTextEvent {
   type: 'text';
@@ -175,13 +176,19 @@ export async function* runAgentLoop(
         };
         yield toolResultEvent;
 
-        // 将工具结果反馈给模型
+        // 将工具结果反馈给模型（截断过长结果）
+        const truncatedResult = error
+          ? `Error: ${error}`
+          : truncateToolResult(result);
         const toolMsg = new ToolMessage({
-          content: error ? `Error: ${error}` : result,
+          content: truncatedResult,
           tool_call_id: tc.id,
         });
         conversationMessages.push(toolMsg);
       }
+
+      // 截断过旧的工具消息，控制 agent 循环内上下文膨胀
+      compressOldToolMessages(conversationMessages);
     } catch (err) {
       if (signal?.aborted) break;
       // 流式错误 — 作为最后的错误事件输出并结束
@@ -190,6 +197,23 @@ export async function* runAgentLoop(
   }
 
   yield { type: 'done' };
+}
+
+/** 截断过旧的工具消息，防止 agent 循环内上下文膨胀 */
+function compressOldToolMessages(messages: BaseMessage[], keepRecent: number = 6): void {
+  let toolCount = 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i] as any;
+    if (msg._getType?.() === 'tool' || msg.constructor?.name === 'ToolMessage') {
+      toolCount++;
+      if (toolCount > keepRecent) {
+        const content = typeof msg.content === 'string' ? msg.content : '';
+        if (content.length > 300) {
+          msg.content = content.slice(0, 300) + '\n...[早期工具结果已截断]';
+        }
+      }
+    }
+  }
 }
 
 /** 从 LangChain BaseMessage 中提取 tool_calls */

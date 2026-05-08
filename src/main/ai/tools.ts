@@ -17,6 +17,7 @@ import {
   buildSectionId,
 } from '../knowledge/file-system';
 import { buildIndex, saveIndex, getOrBuildIndex } from '../knowledge/index-builder';
+import { truncateSearchResults, truncateToolResult } from '../ai/context-compressor';
 import { basename } from 'path';
 
 function getKbPath(): string {
@@ -38,7 +39,8 @@ class ReadChapterTool extends StructuredTool {
 
     const result = resolveChapter(kbPath, input.chapterId);
     if (!result) return `Chapter "${input.chapterId}" not found in knowledge base.`;
-    return result.content || '(empty chapter)';
+    const content = result.content || '(empty chapter)';
+    return truncateToolResult(content);
   }
 }
 
@@ -129,7 +131,8 @@ class SearchKnowledgeTool extends StructuredTool {
         return `No knowledge base entries found matching "${input.query}".`;
       }
 
-      return JSON.stringify(results.slice(0, 10), null, 2);
+      const resultJson = JSON.stringify(results.slice(0, 10), null, 2);
+      return truncateSearchResults(resultJson);
     } catch (err) {
       return `Error searching knowledge base: ${err instanceof Error ? err.message : String(err)}`;
     }
