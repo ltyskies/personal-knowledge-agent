@@ -53,47 +53,6 @@
 - **Renderer 进程**：React UI，通过 preload 脚本的 `contextBridge` 与 Main 进程通信
 - **安全隔离**：`nodeIntegration: false` + `contextIsolation: true`，Render 进程无法直接访问 Node.js 或文件系统
 
-## 目录结构
-
-```
-src/
-├── main/                    # Electron 主进程
-│   ├── index.ts             # 应用入口，窗口创建，生命周期管理
-│   ├── ipc-handlers.ts      # IPC 通信处理器（总枢纽）
-│   ├── ai-client.ts         # AI API 客户端（同步 + 流式）
-│   ├── chapter-matcher.ts   # 知识库章节 AI 匹配器
-│   ├── config.ts            # 应用配置读写
-│   ├── conversation-store.ts # 对话持久化存储
-│   ├── file-system.ts       # Markdown 文件解析与读写
-│   ├── git-ops.ts           # Git 操作封装
-│   ├── index-builder.ts     # 知识库索引构建器
-│   └── knowledge-merger.ts  # 知识合并引擎
-├── preload/
-│   └── index.ts             # contextBridge 安全通信桥梁
-├── renderer/                # React 渲染进程
-│   ├── index.tsx            # React 入口
-│   ├── index.html           # HTML 模板
-│   ├── App.tsx              # 根组件
-│   ├── types.ts             # 全局类型声明
-│   ├── components/
-│   │   ├── Sidebar.tsx      # 侧边栏（导航 + 对话历史 + 知识库树）
-│   │   ├── ChatView.tsx     # 对话视图
-│   │   ├── InputArea.tsx    # 输入区域
-│   │   ├── KnowledgeTree.tsx # 知识库章节树
-│   │   ├── ReaderView.tsx   # 章节阅读视图
-│   │   ├── DiffView.tsx     # Diff 合并确认视图
-│   │   ├── ConfigModal.tsx  # API 设置弹窗
-│   │   ├── SetupWizard.tsx  # 首次启动引导向导
-│   │   └── ErrorBoundary.tsx # 错误边界
-│   ├── hooks/
-│   │   ├── useChat.ts       # 对话状态管理 Hook
-│   │   └── useTheme.ts      # 主题管理 Hook
-│   └── styles/
-│       └── tailwind.css     # Tailwind CSS + Markdown 样式
-└── shared/
-    └── types.ts             # Main/Renderer 共享类型定义
-```
-
 ## 快速开始
 
 ### 环境要求
@@ -212,7 +171,6 @@ Rust 的所有权系统是...
 | 前端 | React 19 + TypeScript 5 |
 | 样式 | Tailwind CSS 4 |
 | Markdown | react-markdown + remark-gfm |
-| Diff | jsdiff |
 | Git | simple-git |
 | AI 调用 | OpenAI-compatible Chat API (fetch + SSE) |
 | 构建 | electron-vite + electron-builder |
