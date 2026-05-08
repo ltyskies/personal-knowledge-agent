@@ -2,6 +2,8 @@
 
 > 与 AI 对话，知识自动沉淀到本地 Markdown 知识库，支持 Git 版本管理。
 
+## 没招了，越写越垃圾
+
 ## 核心功能
 
 - **智能对话**：接入 OpenAI 兼容 API（DeepSeek / OpenAI ），流式实时回复
