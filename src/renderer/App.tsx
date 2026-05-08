@@ -152,6 +152,7 @@ export default function App() {
   // 对话操作：切换
   const handleSwitchConversation = useCallback(async (id: string) => {
     if (id === currentConversationId) return;
+    pendingSaveRef.current = null;  // 丢弃上一对话的待保存数据，防止写入错误文件
     clearExtraction();  // 清空上一对话的提取结果
     setCurrentConversationId(id);
     setViewMode('chat');

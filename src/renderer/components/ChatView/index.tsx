@@ -13,7 +13,7 @@
  * 数据由父组件 App 通过 props 传入，状态管理在 useChat hook 中完成。
  */
 import { useRef, useEffect, useState } from 'react';
-import { Sparkles, X, CheckCircle2, AlertTriangle, RefreshCw, Square } from 'lucide-react';
+import { Sparkles, X, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import type { Message, KnowledgeItem } from '../../../shared/types';
 import MarkdownRenderer from './MarkdownRenderer';
 import InputArea from './InputArea';
@@ -52,12 +52,19 @@ export default function ChatView({
   autoMergeProgress,
 }: ChatViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [mergeDone, setMergeDone] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // 新消息到达时自动滚动到底部
+  // 新消息到达时，仅当用户接近底部才自动滚动（允许用户向上翻看历史）
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const threshold = 100;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom < threshold) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, extractedItems, isAutoMerging, autoMergeProgress]);
 
   // 检测合并完成（isAutoMerging 从 true 变为 false 且有进度记录）
@@ -122,7 +129,7 @@ export default function ChatView({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4">
         {/* 错误提示 — 全局错误条（消息级别错误在气泡内展示） */}
         {error && (
           <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
@@ -183,17 +190,10 @@ export default function ChatView({
           ))
         )}
 
-        {/* 流式输出光标动画 + 停止按钮 */}
+        {/* 流式输出光标动画 */}
         {isStreaming && (
-          <div className="flex items-center gap-3 ml-1">
+          <div className="ml-1">
             <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse" />
-            <button
-              onClick={onStop}
-              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <Square size={12} />
-              停止生成
-            </button>
           </div>
         )}
 
@@ -259,7 +259,7 @@ export default function ChatView({
         <div ref={bottomRef} />
       </div>
 
-      <InputArea onSend={onSend} disabled={isStreaming} />
+      <InputArea onSend={onSend} isStreaming={isStreaming} onStop={onStop} />
     </div>
   );
 }

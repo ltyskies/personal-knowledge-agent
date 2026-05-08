@@ -97,6 +97,8 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
   const messagesRef = useRef<Message[]>([]);
   const loadedIdRef = useRef<string | null>(null);
   const prevStreamingRef = useRef(false);
+  // 标记流式是否正常完成（done chunk 到达），区分于强制停止/切换对话
+  const streamingCompletedNormallyRef = useRef(false);
 
   // 对话切换时：清空当前状态，加载新对话的消息
   useEffect(() => {
@@ -110,6 +112,9 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
     setIsStreaming(false);
     streamingContentRef.current = '';
     streamingRequestIdRef.current = null;
+    streamingCompletedNormallyRef.current = false;
+    // 立即清空消息，防止旧对话消息残留导致自动保存写错文件
+    setMessages([]);
 
     window.knowledgeAgent.conversation.get(conversationId).then((data) => {
       const conv = data as { messages: Message[] } | null;
@@ -130,10 +135,12 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
     messagesRef.current = messages;
   }, [messages]);
 
-  // 流式输出完成时通知父组件（触发自动保存）
+  // 流式输出正常完成时通知父组件（触发自动保存）
+  // 仅在 done chunk 到达导致 isStreaming → false 时触发，排除主动停止/切换对话
   useEffect(() => {
-    if (prevStreamingRef.current && !isStreaming && messages.length > 0) {
+    if (prevStreamingRef.current && !isStreaming && messages.length > 0 && streamingCompletedNormallyRef.current) {
       onMessagesChange?.(messages);
+      streamingCompletedNormallyRef.current = false;
     }
     prevStreamingRef.current = isStreaming;
   }, [isStreaming, messages, onMessagesChange]);
@@ -192,6 +199,7 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
       if (c.done) {
         // 流正常结束：将累积内容写入并标记 completed
         const finalContent = streamingContentRef.current;
+        streamingCompletedNormallyRef.current = true;
         setMessages((prev) =>
           prev.map((m) =>
             m.requestId === requestId && m.role === 'assistant'
@@ -303,6 +311,7 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
       setError(null);
       streamingContentRef.current = '';
       streamingRequestIdRef.current = requestId;
+      streamingCompletedNormallyRef.current = false;
 
       const ctxMessages = buildContextMessages(allMessages);
       window.knowledgeAgent.chat.stream(ctxMessages).catch((err: unknown) => {
@@ -330,6 +339,7 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
   const stop = useCallback(() => {
     if (!isStreaming) return;
 
+    streamingCompletedNormallyRef.current = false;
     const requestId = streamingRequestIdRef.current;
     if (requestId) {
       // 先标记 assistant 为 interrupted（保留已生成内容）
@@ -351,6 +361,9 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
     }
 
     window.knowledgeAgent.chat.stop();
+    streamingContentRef.current = '';
+    streamingRequestIdRef.current = null;
+    setIsStreaming(false);
   }, [isStreaming]);
 
   /**
@@ -391,6 +404,7 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
       setError(null);
       streamingContentRef.current = '';
       streamingRequestIdRef.current = requestId;
+      streamingCompletedNormallyRef.current = false;
 
       const ctxMessages = buildContextMessages(historyUpToUser);
       window.knowledgeAgent.chat.stream(ctxMessages).catch((err: unknown) => {
