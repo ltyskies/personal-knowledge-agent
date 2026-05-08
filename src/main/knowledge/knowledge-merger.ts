@@ -9,10 +9,10 @@
  * 2. 构造合并 Prompt，让 AI 判断新增信息并追加到已有内容末尾
  * 3. 返回 MergeResult（包含新旧内容、是否为新建章节等元数据）
  */
-import { chatSync } from './ai-client';
-import { loadConfig } from './config';
+import { chatSync } from '../ai/ai-client';
+import { loadConfig } from '../storage/config';
 import { resolveChapter } from './file-system';
-import type { KnowledgeItem, ChapterMatch, MergeResult, Message } from '../shared/types';
+import type { KnowledgeItem, ChapterMatch, MergeResult, Message } from '../../shared/types';
 
 /**
  * 构造 AI 合并 Prompt

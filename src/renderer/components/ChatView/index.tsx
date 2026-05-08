@@ -14,7 +14,7 @@ import { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Sparkles, X, CheckCircle2, AlertTriangle } from 'lucide-react';
-import type { Message, KnowledgeItem } from '../../shared/types';
+import type { Message, KnowledgeItem } from '../../../shared/types';
 import InputArea from './InputArea';
 
 interface ChatViewProps {

@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import type { Conversation, ConversationMeta } from '../shared/types';
+import type { Conversation, ConversationMeta } from '../../shared/types';
 
 const CONV_DIR = join(homedir(), '.knowledge-agent', 'conversations');
 const INDEX_PATH = join(CONV_DIR, 'index.json');

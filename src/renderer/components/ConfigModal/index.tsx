@@ -10,7 +10,7 @@
  */
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import type { AppConfig } from '../../shared/types';
+import type { AppConfig } from '../../../shared/types';
 
 interface ConfigModalProps {
   open: boolean;

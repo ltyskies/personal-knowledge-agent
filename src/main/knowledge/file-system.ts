@@ -17,7 +17,7 @@
  */
 import { readFileSync, writeFileSync, statSync, existsSync, readdirSync } from 'fs';
 import { join, extname, basename } from 'path';
-import type { SectionEntry, FileEntry } from '../shared/types';
+import type { SectionEntry, FileEntry } from '../../shared/types';
 
 /**
  * 将文本转换为 URL 友好的 slug

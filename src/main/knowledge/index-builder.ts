@@ -10,7 +10,7 @@
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import type { IndexData, FileEntry } from '../shared/types';
+import type { IndexData, FileEntry } from '../../shared/types';
 import { listMarkdownFiles, buildFileEntry } from './file-system';
 
 const INDEX_FILENAME = 'index.json';

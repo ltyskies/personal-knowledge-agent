@@ -9,9 +9,9 @@
  *
  * 如果知识库为空（无章节），返回空匹配列表，后续合并流程将创建新文件。
  */
-import type { IndexData, KnowledgeItem, ChapterMatch, Message } from '../shared/types';
-import { chatSync } from './ai-client';
-import { loadConfig } from './config';
+import type { IndexData, KnowledgeItem, ChapterMatch, Message } from '../../shared/types';
+import { chatSync } from '../ai/ai-client';
+import { loadConfig } from '../storage/config';
 
 /**
  * 将嵌套的章节索引展平为一维数组

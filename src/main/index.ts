@@ -14,7 +14,7 @@
 import { app, BrowserWindow, shell, Menu } from 'electron';
 import { join } from 'path';
 import { is } from '@electron-toolkit/utils';
-import { registerHandlers } from './ipc-handlers';
+import { registerHandlers } from './ipc/ipc-handlers';
 
 // 单实例锁 — 防止重复启动应用
 const gotTheLock = app.requestSingleInstanceLock();

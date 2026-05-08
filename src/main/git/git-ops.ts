@@ -10,10 +10,10 @@
  */
 import simpleGit, { type SimpleGit } from 'simple-git';
 import { existsSync } from 'fs';
-import { loadConfig } from './config';
-import type { GitStatus } from '../shared/types';
-import { chatSync } from './ai-client';
-import type { Message } from '../shared/types';
+import { loadConfig } from '../storage/config';
+import type { GitStatus } from '../../shared/types';
+import { chatSync } from '../ai/ai-client';
+import type { Message } from '../../shared/types';
 
 function getGit(kbPath: string): SimpleGit {
   return simpleGit(kbPath);

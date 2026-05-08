@@ -8,7 +8,7 @@
  *
  * 安全注意：API Key 仅在此模块中使用，绝不会传递到 Renderer 进程。
  */
-import type { Message, Chunk } from '../shared/types';
+import type { Message, Chunk } from '../../shared/types';
 
 // 默认超时时间 — 60 秒足够大多数模型响应
 const DEFAULT_TIMEOUT = 60_000;

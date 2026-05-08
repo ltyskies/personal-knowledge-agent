@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import type { AppConfig } from '../shared/types';
+import type { AppConfig } from '../../shared/types';
 
 const CONFIG_DIR = join(homedir(), '.knowledge-agent');
 const CONFIG_PATH = join(CONFIG_DIR, 'config.json');

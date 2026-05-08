@@ -12,7 +12,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { Check, ArrowRight, FolderOpen, RefreshCw, Globe, BookOpen, GitBranch } from 'lucide-react';
-import type { AppConfig } from '../../shared/types';
+import type { AppConfig } from '../../../shared/types';
 
 interface SetupWizardProps {
   onComplete: (config: AppConfig) => void;

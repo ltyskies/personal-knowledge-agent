@@ -12,7 +12,7 @@
  */
 import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, FileText } from 'lucide-react';
-import type { FileNode, SectionNode } from '../../shared/types';
+import type { FileNode, SectionNode } from '../../../../shared/types';
 
 interface KnowledgeTreeProps {
   onSelectChapter: (id: string, heading: string) => void;

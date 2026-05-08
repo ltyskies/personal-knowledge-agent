@@ -10,8 +10,8 @@
  */
 import { useState } from 'react';
 import { MessageSquare, BookOpen, Settings, RefreshCw, Sun, Moon, Monitor, Plus, Trash2, ChevronDown, ChevronRight, MessageCircle } from 'lucide-react';
-import type { ViewMode } from '../types';
-import type { ConversationMeta } from '../../shared/types';
+import type { ViewMode } from '../../types';
+import type { ConversationMeta } from '../../../shared/types';
 import KnowledgeTree from './KnowledgeTree';
 
 interface SidebarProps {

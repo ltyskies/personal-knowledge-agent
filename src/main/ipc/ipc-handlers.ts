@@ -22,15 +22,15 @@
 import { ipcMain, dialog } from 'electron';
 import { basename } from 'path';
 import { existsSync, mkdirSync } from 'fs';
-import { loadConfig, saveConfig } from './config';
-import { readMarkdownFile, resolveChapter, writeChapterContent } from './file-system';
-import { getOrBuildIndex, buildIndex, saveIndex } from './index-builder';
-import { streamChat, chatSync } from './ai-client';
-import { matchChapters } from './chapter-matcher';
-import { mergeChapter } from './knowledge-merger';
-import { getStatus, commit, initRepo } from './git-ops';
-import { listConversations, getConversation, saveConversation, deleteConversation, createConversation } from './conversation-store';
-import type { AppConfig, FileNode, SectionNode, FileEntry, IndexData, Message, KnowledgeItem, ChapterMatch, MergeInput, MergeResult, WriteInput, GitStatus, Conversation, ConversationMeta } from '../shared/types';
+import { loadConfig, saveConfig } from '../storage/config';
+import { readMarkdownFile, resolveChapter, writeChapterContent } from '../knowledge/file-system';
+import { getOrBuildIndex, buildIndex, saveIndex } from '../knowledge/index-builder';
+import { streamChat, chatSync } from '../ai/ai-client';
+import { matchChapters } from '../knowledge/chapter-matcher';
+import { mergeChapter } from '../knowledge/knowledge-merger';
+import { getStatus, commit, initRepo } from '../git/git-ops';
+import { listConversations, getConversation, saveConversation, deleteConversation, createConversation } from '../storage/conversation-store';
+import type { AppConfig, FileNode, SectionNode, FileEntry, IndexData, Message, KnowledgeItem, ChapterMatch, MergeInput, MergeResult, WriteInput, GitStatus, Conversation, ConversationMeta } from '../../shared/types';
 
 /** 将内部 FileEntry 转换为仅含 UI 需要字段的 FileNode 树形结构 */
 function fileEntryToNode(entry: FileEntry): FileNode {
