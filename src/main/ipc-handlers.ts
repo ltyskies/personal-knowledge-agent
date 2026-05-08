@@ -32,18 +32,6 @@ import { getStatus, commit, initRepo } from './git-ops';
 import { listConversations, getConversation, saveConversation, deleteConversation, createConversation } from './conversation-store';
 import type { AppConfig, FileNode, SectionNode, FileEntry, IndexData, Message, KnowledgeItem, ChapterMatch, MergeInput, MergeResult, WriteInput, GitStatus, Conversation, ConversationMeta } from '../shared/types';
 
-/**
- * mtime 缓存 — 记录用户确认合并时文件的修改时间
- *
- * 写入前通过对比当前 mtime 与缓存值，检测文件是否在用户确认期间被外部修改。
- * 若不一致则拒绝写入并提示用户刷新重试，防止覆盖他人编辑。
- */
-const mtimeCache = new Map<string, string>();
-
-function recordMtime(filePath: string, mtime: string): void {
-  mtimeCache.set(filePath, mtime);
-}
-
 /** 将内部 FileEntry 转换为仅含 UI 需要字段的 FileNode 树形结构 */
 function fileEntryToNode(entry: FileEntry): FileNode {
   function toSectionNode(section: SectionNode): SectionNode {
@@ -175,7 +163,6 @@ export function registerHandlers(): void {
       const fullPath = join(config.kbPath, result.filePath);
       try {
         recordedMtime = statSync(fullPath).mtime.toISOString();
-        recordMtime(result.filePath, recordedMtime);
       } catch {
         // 文件尚未创建（新文件场景）
       }

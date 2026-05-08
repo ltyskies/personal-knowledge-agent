@@ -7,15 +7,12 @@
  * 合并流程：
  * 1. 根据章节匹配结果，读取已有章节内容（如果存在）
  * 2. 构造合并 Prompt，让 AI 判断新增信息并追加到已有内容末尾
- * 3. 使用 jsdiff 生成 diff，供用户在 DiffView 中确认
- * 4. 返回 MergeResult（包含 diff、新旧内容、是否为新建章节等元数据）
+ * 3. 返回 MergeResult（包含新旧内容、是否为新建章节等元数据）
  */
-import { basename } from 'path';
 import { chatSync } from './ai-client';
 import { loadConfig } from './config';
-import { resolveChapter, readMarkdownFile, parseMarkdownFile } from './file-system';
+import { resolveChapter } from './file-system';
 import type { KnowledgeItem, ChapterMatch, MergeResult, Message } from '../shared/types';
-import { diffWords } from 'diff';
 
 /**
  * 构造 AI 合并 Prompt
@@ -64,7 +61,6 @@ ${item.content}
  * 执行知识合并
  *
  * 返回完整的 MergeResult，包含：
- * - diff: 新旧内容的差异对比文本（jsdiff word-level diff）
  * - isNewChapter: 是否为全新章节（无已有内容匹配）
  * - isNewFile: 是否需要创建新文件
  * - filePath/chapterId/heading: 目标位置信息
@@ -100,18 +96,6 @@ export async function mergeChapter(
   );
 
   const oldContent = existingContent || '';
-
-  // 生成 word-level diff 用于 UI 展示，让用户直观看到变化
-  const changes = diffWords(oldContent, mergedContent);
-
-  const diffText = changes
-    .map((part) => {
-      if (part.added) return `{+${part.value}+}`;
-      if (part.removed) return `{-${part.value}-}`;
-      return part.value;
-    })
-    .join('');
-
   const isNewChapter = !match.id;
 
   return {
@@ -120,7 +104,6 @@ export async function mergeChapter(
     heading: match.heading || `### ${item.title}`,
     oldContent,
     newContent: mergedContent,
-    diff: diffText,
     isNewChapter,
     isNewFile: isNewChapter && !match.filePath,
     domain: item.domain,

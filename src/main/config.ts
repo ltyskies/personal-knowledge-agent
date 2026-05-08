@@ -70,6 +70,3 @@ export function saveConfig(config: AppConfig): void {
   writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
 }
 
-export function getConfigPath(): string {
-  return CONFIG_PATH;
-}

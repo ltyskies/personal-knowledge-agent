@@ -2,27 +2,15 @@
  * 共享类型定义
  *
  * Main 进程和 Renderer 进程均可引用此文件。
- * 所有类型在此统一定义，避免进程间类型不一致。
  *
  * 类型分类：
- * - IPC 通信包装：IPCResult<T> — 所有 IPC 响应的统一格式
  * - 应用配置：AppConfig, APIConfig, RelevanceConfig, GitConfig
  * - 知识库结构：FileEntry, SectionEntry, FileNode, SectionNode, IndexData
  * - AI 对话：Message, Chunk
  * - 知识提取与合并：KnowledgeItem, ChapterMatch, MergeInput, MergeResult, WriteInput
- * - Diff 展示：DiffResult
  * - 对话管理：Conversation, ConversationMeta
- * - Git 操作：GitStatus, GitCommitResult
+ * - Git 操作：GitStatus
  */
-
-// ===== IPC 通信响应包装 =====
-
-/** 统一 IPC 响应格式：success=false 时 error 字段包含错误描述 */
-export interface IPCResult<T = void> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
 
 // ===== 应用配置 =====
 
@@ -134,20 +122,19 @@ export interface MergeInput {
   chapterMatch: ChapterMatch;
 }
 
-/** 合并结果 — 包含合并前后的完整信息和 diff */
+/** 合并结果 — 包含合并前后的完整信息 */
 export interface MergeResult {
   filePath: string;
   chapterId: string;
   heading: string;
   oldContent: string;       // 合并前的内容（已有章节内容或空字符串）
   newContent: string;       // AI 合并后的内容
-  diff: string;             // 差异对比文本（{+新增+}/{-删除-} 标记）
   isNewChapter: boolean;    // 是否为全新章节（无已有章节匹配）
   isNewFile: boolean;       // 是否需要创建新文件
   domain: string;
   subdomain: string;
   title: string;
-  recordedMtime: string;    // 合并时记录的文件 mtime，用于写入前的冲突检测
+  recordedMtime?: string;   // 合并时记录的文件 mtime（由 ipc-handlers 补充）
 }
 
 /** 写入请求 — 用户确认后的写入参数 */
@@ -162,16 +149,6 @@ export interface WriteInput {
   isNewChapter: boolean;
   isNewFile: boolean;
   recordedMtime: string;   // 用于冲突检测：写入前对比当前 mtime
-}
-
-// ===== Diff 展示 =====
-
-export interface DiffResult {
-  filePath: string;
-  chapterId: string;
-  oldContent: string;
-  newContent: string;
-  diff: string;
 }
 
 // ===== 对话管理 =====
@@ -200,8 +177,4 @@ export interface GitStatus {
   isRepo: boolean;
   dirty: boolean;           // 是否有未提交的变更
   changedFiles: string[];
-}
-
-export interface GitCommitResult {
-  commitHash: string;
 }

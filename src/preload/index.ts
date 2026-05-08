@@ -72,5 +72,3 @@ const api = {
 
 // 将 API 挂载到 window.knowledgeAgent — 渲染进程的唯一外部通信入口
 contextBridge.exposeInMainWorld('knowledgeAgent', api);
-
-export type KnowledgeAgentAPI = typeof api;

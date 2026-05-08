@@ -13,7 +13,7 @@ import type { Message, Chunk } from '../shared/types';
 // 默认超时时间 — 60 秒足够大多数模型响应
 const DEFAULT_TIMEOUT = 60_000;
 
-export interface ChatOptions {
+interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
   timeout?: number;

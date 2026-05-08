@@ -167,11 +167,6 @@ export function readMarkdownFile(kbPath: string, relativePath: string): string {
   return readFileSync(fullPath, 'utf-8');
 }
 
-export function writeMarkdownFile(kbPath: string, relativePath: string, content: string): void {
-  const fullPath = join(kbPath, relativePath);
-  writeFileSync(fullPath, content, 'utf-8');
-}
-
 /**
  * 将解析后的 Markdown 结构序列化回文本
  *
