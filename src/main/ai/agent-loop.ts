@@ -30,6 +30,7 @@ import {
   calcMaxIterations,
   buildBudgetHint,
 } from './context-compressor';
+import { TOOL_SYSTEM_PROMPT_FULL, TOOL_SYSTEM_PROMPT_LITE } from './prompts';
 
 export interface AgentTextEvent {
   type: 'text';
@@ -50,29 +51,6 @@ export type AgentEvent =
 // ===== 常量 =====
 
 const DEFAULT_CONTEXT_WINDOW = 360000;
-
-const TOOL_SYSTEM_PROMPT_BASE = `You are a personal knowledge management assistant. You have access to a local Markdown knowledge base with the following tools:
-
-- **search_knowledge(query)**: Search the knowledge base for relevant chapters. Use this FIRST before answering any question that might benefit from stored knowledge.
-- **read_chapter(chapterId)**: Read a chapter's full content by its unique ID. Use this after search_knowledge to get the full details.
-- **list_files()**: List all knowledge base files and their titles. Use this to understand what topics are available.
-- **write_chapter(...)**: Save new knowledge to the knowledge base. Always confirm with the user before writing — describe what you plan to save and ask permission.
-
-Guidelines:
-- When the user asks a question, search the knowledge base first for relevant context
-- When the user shares valuable information or insights, proactively offer to save it to the knowledge base
-- Never write to the knowledge base without the user's explicit consent
-- When you read from the knowledge base, cite the source chapter and file
-- Use conversation context to answer when the knowledge base doesn't have relevant information
-- Tools can be used multiple times in a single conversation turn if needed`;
-
-const TOOL_SYSTEM_PROMPT_LITE = `You are a knowledge management assistant. Available tools:
-- search_knowledge(query): Search knowledge base
-- read_chapter(chapterId): Read chapter by ID
-- list_files(): List available files
-- write_chapter(...): Save knowledge (confirm with user first)
-
-Core rules: Search before answering. Ask permission before writing. Cite sources.`;
 
 /**
  * 运行 tool-aware agent 循环（上下文自适应版）
@@ -99,7 +77,7 @@ export async function* runAgentLoop(
   let currentPressureLevel: 'normal' | 'moderate' | 'high' | 'critical' = initialPressure.level;
   const systemPromptText = currentPressureLevel === 'high' || currentPressureLevel === 'critical'
     ? TOOL_SYSTEM_PROMPT_LITE
-    : TOOL_SYSTEM_PROMPT_BASE;
+    : TOOL_SYSTEM_PROMPT_FULL;
 
   // 注入预算提示
   const budgetHint = buildBudgetHint(initialPressure.remainingTokens, initialPressure.usageRatio);

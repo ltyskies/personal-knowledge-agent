@@ -11,6 +11,17 @@
  */
 import { SystemMessage, HumanMessage, type BaseMessage } from '@langchain/core/messages';
 import type { ChatOpenAI } from '@langchain/openai';
+import {
+  TOOL_SYSTEM_PROMPT_FULL,
+  TOOL_SYSTEM_PROMPT_LITE,
+  INLOOP_SUMMARY_PROMPT,
+  COMPRESSION_SYSTEM_PROMPT,
+  generateInLoopSummaryPrefix,
+  generateEmergencyTruncationWarning,
+  generateConversationSummaryPrefix,
+  BUDGET_HINT_TIGHT,
+  BUDGET_HINT_ELEVATED,
+} from './prompts';
 
 // ===== 配置常量 =====
 
@@ -154,29 +165,6 @@ function truncateWriteResult(result: string): string {
 
 // ===== 系统提示词动态裁剪 =====
 
-const TOOL_SYSTEM_PROMPT_FULL = `You are a personal knowledge management assistant. You have access to a local Markdown knowledge base with the following tools:
-
-- **search_knowledge(query)**: Search the knowledge base for relevant chapters. Use this FIRST before answering any question that might benefit from stored knowledge.
-- **read_chapter(chapterId)**: Read a chapter's full content by its unique ID. Use this after search_knowledge to get the full details.
-- **list_files()**: List all knowledge base files and their titles. Use this to understand what topics are available.
-- **write_chapter(...)**: Save new knowledge to the knowledge base. Always confirm with the user before writing — describe what you plan to save and ask permission.
-
-Guidelines:
-- When the user asks a question, search the knowledge base first for relevant context
-- When the user shares valuable information or insights, proactively offer to save it to the knowledge base
-- Never write to the knowledge base without the user's explicit consent
-- When you read from the knowledge base, cite the source chapter and file
-- Use conversation context to answer when the knowledge base doesn't have relevant information
-- Tools can be used multiple times in a single conversation turn if needed`;
-
-const TOOL_SYSTEM_PROMPT_LITE = `You are a knowledge management assistant. Available tools:
-- search_knowledge(query): Search knowledge base
-- read_chapter(chapterId): Read chapter by ID
-- list_files(): List available files
-- write_chapter(...): Save knowledge (confirm with user first)
-
-Core rules: Search before answering. Ask permission before writing. Cite sources.`;
-
 /**
  * 根据上下文压力等级裁剪系统提示词
  *
@@ -275,21 +263,6 @@ export function clearCompressionCache(): void {
 }
 
 // ===== 循环内 LLM 工具结果摘要 =====
-
-const INLOOP_SUMMARY_PROMPT = `你是一个上下文压缩助手。将以下对话中的工具调用结果和 AI 响应压缩为关键信息摘要。
-
-输出格式（每项一行）：
-### 搜索/读取的知识
-- [文件/章节名]: 关键发现
-### 用户意图
-- 用户当前想要什么
-### 已确认的事实
-- 已明确的重要信息
-
-规则：
-- 只保留事实，忽略冗余和无关信息
-- 每个条目简洁明确，不超过 50 字
-- 只输出摘要，不输出其他内容`;
 
 function buildInLoopSummaryInput(messages: BaseMessage[]): string {
   const parts: string[] = [];
@@ -478,7 +451,7 @@ async function applyHeavyCompression(
   const summaryText = await summarizeInLoop(model, summarizeMessages);
 
   const summaryMsg = new SystemMessage(
-    `[以下为此前对话和工具调用的压缩摘要，共 ${summarizeMessages.length} 条消息]\n\n${summaryText}`,
+    `${generateInLoopSummaryPrefix(summarizeMessages.length)}\n\n${summaryText}`,
   );
 
   // 同时精简原有的系统提示词
@@ -510,7 +483,7 @@ function applyEmergencyTruncation(messages: BaseMessage[]): BaseMessage[] {
 
   if (nonSystem.length > 6) {
     result.push(new SystemMessage(
-      `[上下文已满，已截断 ${nonSystem.length - 6} 条早期消息。请精简回答或开启新对话。]`,
+      generateEmergencyTruncationWarning(nonSystem.length - 6),
     ));
   }
 
@@ -519,23 +492,6 @@ function applyEmergencyTruncation(messages: BaseMessage[]): BaseMessage[] {
 }
 
 // ===== 对外压缩（对话开始时调用） =====
-
-const COMPRESSION_SYSTEM_PROMPT = `你是一个对话压缩助手。将对话历史压缩为结构化摘要，保留关键信息。
-
-输出格式：
-### 讨论主题
-- 主题简述
-### 关键信息
-- 重要事实或知识点
-### 用户偏好
-- 用户表达过的偏好或决策
-### 已提取知识点
-- 已记录的知识点
-
-规则：
-- 只输出摘要，不输出其他内容
-- 忽略闲聊和情感表达，只保留事实性信息
-- 每个条目一行，简洁明确`;
 
 function buildCompressionPrompt(
   messages: BaseMessage[],
@@ -633,7 +589,7 @@ export async function compressConversationMessages(
   }
 
   const summaryMsg = new SystemMessage(
-    `[以下是更早对话的结构化摘要，共 ${oldMessages.length} 条历史消息]\n\n${summary}`,
+    `${generateConversationSummaryPrefix(oldMessages.length)}\n\n${summary}`,
   );
 
   return [summaryMsg, ...recentMessages];
@@ -728,10 +684,10 @@ export function buildBudgetHint(remainingTokens: number, usageRatio: number): st
   if (usageRatio < 0.5) return '';
 
   if (usageRatio >= 0.85) {
-    return `\n\n[上下文预算紧张：剩余约 ${remainingTokens} tokens。请精简回答，优先使用精确搜索而非全文读取。]`;
+    return BUDGET_HINT_TIGHT(remainingTokens);
   }
   if (usageRatio >= 0.70) {
-    return `\n\n[上下文预算：剩余约 ${remainingTokens} tokens。建议精简工具调用结果。]`;
+    return BUDGET_HINT_ELEVATED(remainingTokens);
   }
   return '';
 }

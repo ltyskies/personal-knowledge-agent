@@ -53,23 +53,26 @@ export default function ChatView({
 }: ChatViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const prevMsgCountRef = useRef(0);
   const [mergeDone, setMergeDone] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // 进入对话模块时自动滚到底部
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView();
-  }, []);
-
-  // 新消息到达时自动滚动：用户发送消息时无条件滚动，AI 回复时仅当用户接近底部才滚动
+  // 自动滚动管理：消息条数变化（进入对话/切换对话/发送消息）→ 无条件滚底；
+  // 流式输出或提取结果更新（条数不变）→ 仅在用户接近底部时滚动
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
-    const lastMsg = messages[messages.length - 1];
-    const isUserMessage = lastMsg?.role === 'user';
+    const countChanged = messages.length !== prevMsgCountRef.current;
+    prevMsgCountRef.current = messages.length;
+
+    if (countChanged && messages.length > 0) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
     const threshold = 100;
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    if (isUserMessage || distanceFromBottom < threshold) {
+    if (distanceFromBottom < threshold) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, extractedItems, isAutoMerging, autoMergeProgress]);

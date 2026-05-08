@@ -14,6 +14,7 @@ import { loadConfig } from '../storage/config';
 import type { GitStatus } from '../../shared/types';
 import { chatSync } from '../ai/ai-client';
 import type { Message } from '../../shared/types';
+import { COMMIT_SYSTEM_PROMPT, buildCommitUserPrompt } from '../ai/prompts';
 
 function getGit(kbPath: string): SimpleGit {
   return simpleGit(kbPath);
@@ -72,12 +73,11 @@ async function generateCommitMessage(
   const messages: Message[] = [
     {
       role: 'system',
-      content:
-        '你是一个 commit message 生成助手。根据知识库变更信息生成符合 conventional commits 规范的中文 commit message。格式：docs({领域}): {具体变更描述}。只返回 commit message（单行），不要其他内容。',
+      content: COMMIT_SYSTEM_PROMPT,
     },
     {
       role: 'user',
-      content: `领域：${domain}\n知识点：${title}\n类型：${isNew ? '新增' : '更新'}`,
+      content: buildCommitUserPrompt(domain, title, isNew),
     },
   ];
 

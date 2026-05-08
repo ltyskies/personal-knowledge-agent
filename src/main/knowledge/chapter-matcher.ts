@@ -12,6 +12,7 @@
 import type { IndexData, KnowledgeItem, ChapterMatch, Message } from '../../shared/types';
 import { chatSync } from '../ai/ai-client';
 import { loadConfig } from '../storage/config';
+import { CHAPTER_MATCH_SYSTEM_PROMPT, buildChapterMatchUserPrompt } from '../ai/prompts';
 
 /**
  * 将嵌套的章节索引展平为一维数组
@@ -77,20 +78,7 @@ function buildMatchPrompt(
     .map((c) => `- id: ${c.id}\n  标题：${c.heading}\n  路径：${c.path}\n  概述：${c.summary}`)
     .join('\n');
 
-  return `你是一个知识库检索助手。以下是从对话中提取的知识点：
-
-${itemsJson}
-
-以下是知识库中所有可用的章节：
-
-${chaptersList}
-
-对于每个知识点，从上述章节中找到最匹配的已有章节。
-- 如果知识点与某章节高度相关，返回该章节的 id
-- 如果找不到合适匹配，chapterId 设为空字符串 ""
-
-请以 JSON 格式返回，只返回 JSON 数组，不要其他内容：
-[{"knowledgeIndex": 0, "chapterId": "xxx"}, ...]`;
+  return buildChapterMatchUserPrompt(itemsJson, chaptersList);
 }
 
 /**
@@ -123,7 +111,7 @@ export async function matchChapters(knowledgeItems: KnowledgeItem[], index: Inde
   const messages: Message[] = [
     {
       role: 'system',
-      content: '你是一个精确的知识库匹配助手。只返回 JSON 数组，不要解释。',
+      content: CHAPTER_MATCH_SYSTEM_PROMPT,
     },
     { role: 'user', content: prompt },
   ];

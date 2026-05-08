@@ -29,6 +29,7 @@ import { chatSync, createChatModel, toLangChainMessages, StreamError, estimateTo
 import { runAgentLoop } from '../ai/agent-loop';
 import { KNOWLEDGE_BASE_TOOLS } from '../ai/tools';
 import { compressConversationMessages, clearCompressionCache } from '../ai/context-compressor';
+import { EXTRACT_SYSTEM_PROMPT, buildExtractUserPrompt } from '../ai/prompts';
 import { matchChapters } from '../knowledge/chapter-matcher';
 import { mergeChapter } from '../knowledge/knowledge-merger';
 import { getStatus, commit, initRepo } from '../git/git-ops';
@@ -193,34 +194,9 @@ export function registerHandlers(): void {
         conversation.slice(conversation.length - maxConvChars);
     }
 
-    const systemPrompt = `你是一个知识提取助手。基于用户与AI的本轮对话，提取值得记录的新知识点。
-
-核心原则：增量提取，不重复、不重写
-- 你只提取本轮对话中首次出现的新知识
-- 如果本轮对话是对已有知识的补充或细化，提取补充部分，而不是把已有知识重新写一遍
-- 不要提取之前对话中已经记录过的知识（即使本轮又提到了）
-- 提取的是"知识"而非"对话记录"——要把对话中的信息提炼为独立的、可供未来查阅的知识条目
-
-每条知识点格式：
-{
-  "domain": "所属领域（如 Rust、计算机网络）",
-  "subdomain": "子领域（如 所有权系统、TCP协议）",
-  "title": "知识点标题（如 移动语义、TIME_WAIT状态）",
-  "content": "知识内容（Markdown 格式，200-500字，完整准确，适合独立查阅）",
-  "relatedQuestions": ["相关问题1", "相关问题2"]
-}
-
-规则：
-- 只提取有长期记录价值的知识点，忽略闲聊和个人信息
-- domain/subdomain/title 使用中文
-- content 使用 Markdown 格式，可包含代码块
-- content 应该是自包含的（脱离对话上下文也能理解）
-- 如果本轮对话没有值得记录的新知识，返回空数组 []
-- 只返回 JSON 数组，不要其他内容`;
-
     const response = await chatSync(config.api.baseURL, config.api.key, config.api.model, [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: `从以下对话中提取知识点：\n\n${conversation}` },
+      { role: 'system', content: EXTRACT_SYSTEM_PROMPT },
+      { role: 'user', content: buildExtractUserPrompt(conversation) },
     ]);
 
     try {

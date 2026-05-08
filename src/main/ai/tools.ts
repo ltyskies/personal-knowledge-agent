@@ -28,7 +28,7 @@ function getKbPath(): string {
 
 class ReadChapterTool extends StructuredTool {
   name = 'read_chapter';
-  description = 'Read a chapter\'s full content from the knowledge base by its unique ID. Use this to retrieve stored knowledge before answering user questions.';
+  description = '通过章节唯一 ID 从知识库中读取章节的完整内容。在回答用户问题之前使用此工具检索已存储的知识。';
   schema = z.object({
     chapterId: z.string().describe('The unique ID of the chapter to read'),
   });
@@ -48,7 +48,7 @@ class ReadChapterTool extends StructuredTool {
 
 class WriteChapterTool extends StructuredTool {
   name = 'write_chapter';
-  description = 'Write or update a chapter in the knowledge base. Creates new files or appends to existing ones. Always confirm with the user before writing.';
+  description = '向知识库写入或更新章节。可创建新文件或追加到已有文件。写入前务必征得用户同意。';
   schema = z.object({
     filePath: z.string().describe('Relative path for the .md file, e.g. "Rust.md"'),
     heading: z.string().describe('Markdown heading for the chapter, e.g. "### Ownership Rules"'),
@@ -98,7 +98,7 @@ class WriteChapterTool extends StructuredTool {
 
 class SearchKnowledgeTool extends StructuredTool {
   name = 'search_knowledge';
-  description = 'Search the knowledge base for relevant chapters. Returns matching chapters with their IDs, titles, and summaries. Use this before answering user questions to find relevant stored knowledge.';
+  description = '搜索知识库中的相关章节。返回匹配章节的 ID、标题和摘要。在回答用户问题之前使用此工具查找相关的已存储知识。';
   schema = z.object({
     query: z.string().describe('Search query — keywords to match against chapter titles and summaries'),
   });
@@ -143,7 +143,7 @@ class SearchKnowledgeTool extends StructuredTool {
 
 class ListFilesTool extends StructuredTool {
   name = 'list_files';
-  description = 'List all Markdown files in the knowledge base with their titles. Use this to understand what domains and topics are available.';
+  description = '列出知识库中的所有 Markdown 文件及其标题。使用此工具了解有哪些领域和主题可用。';
   schema = z.object({});
 
   async _call(): Promise<string> {

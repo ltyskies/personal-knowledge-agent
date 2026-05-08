@@ -15,6 +15,13 @@ import { chatSync } from '../ai/ai-client';
 import { loadConfig } from '../storage/config';
 import { resolveChapter } from './file-system';
 import { reviewMerge } from '../ai/knowledge-reviewer';
+import {
+  MERGE_SYSTEM_PROMPT_EXISTING,
+  MERGE_SYSTEM_PROMPT_NEW,
+  buildMergeUserPromptExisting,
+  buildMergeUserPromptNew,
+  MERGE_EMERGENCY_FEEDBACK,
+} from '../ai/prompts';
 import type { KnowledgeItem, ChapterMatch, MergeResult, Message, ReviewResult } from '../../shared/types';
 
 /** 审查-重试最大轮数 */
@@ -34,62 +41,16 @@ function buildMergePrompt(
   reviewFeedback?: string,
 ): string {
   if (existingContent) {
-    let prompt = `你是一个严格的知识库追加编辑助手。你的唯一任务是将新知识追加到已有内容的末尾。
-
-=== [保留范围开始] 已有内容 — 必须原样保留，禁止任何修改 ===
-${existingContent}
-=== [保留范围结束] ===
-
-=== 新知识点（仅提取新增信息） ===
-标题：${item.title}
-子领域：${item.subdomain}
-内容：
-${item.content}
-===
-
-核心规则（逐条遵守，违反任一条即为失败）：
-1. [保留范围] 内的内容必须逐字保留，一个标点都不能改，一个段落都不能删，顺序不能调
-2. 仔细对比新旧内容，找出新知识点中有但已有内容中完全没有的信息
-3. 仅将纯新增的信息追加到已有内容末尾（用 "---" 分隔线隔开），不在已有内容中间插内容
-4. 如果新知识点与已有内容高度重复（核心事实已存在），直接原样返回已有内容（含 [保留范围] 标记的原文，但去掉标记本身）
-5. 不"优化"已有内容——即使旧内容有瑕疵，也不要修正、重排或精简
-6. 保持 Markdown 格式
-
-错误做法（绝对禁止）：
-- "我把旧内容重新整理了一下" → 错！已有内容不需要整理
-- "旧的内容比较乱，我帮你重构了结构" → 错！结构不能动
-- "我合并了新旧内容，让它们更连贯" → 错！旧内容独立存在，新内容追加在末尾即可
-
-正确做法：
-- 已有内容完整保留 → 分隔线 "---" → 新内容的补充信息
-- 如果新内容与已有高度重复 → 直接返回已有内容（不做任何改动）
-
-最后，在合并后的内容末尾附上一行变更说明：
-> 📝 本次新增：<一句话说明新增了什么>`;
-
-    // 如果有上一轮的审查反馈，注入到 prompt 中
-    if (reviewFeedback) {
-      prompt += `\n\n=== 上一轮审查反馈（必须修正） ===
-${reviewFeedback}
-
-请根据以上反馈重新合并。特别注意反馈中指出的被删除或篡改的内容，必须在本次合并中恢复。`;
-    }
-
-    return prompt;
+    return buildMergeUserPromptExisting(
+      existingContent,
+      item.title,
+      item.subdomain,
+      item.content,
+      reviewFeedback,
+    );
   }
 
-  // 新建章节 — 无旧内容，不需要审查
-  return `你是一个知识库编辑助手。请将以下知识点格式化为适合知识库长期存储的 Markdown 内容：
-
-知识点标题：${item.title}
-所属子领域：${item.subdomain}
-知识点内容：
-${item.content}
-
-规则：
-- 内容丰富完整，适合作为独立章节长期查阅
-- 保持 Markdown 格式，可包含代码块
-- 只返回内容本身，不要添加章节标题（标题已由系统管理）`;
+  return buildMergeUserPromptNew(item.title, item.subdomain, item.content);
 }
 
 /**
@@ -106,9 +67,7 @@ async function mergeOnce(
   const messages: Message[] = [
     {
       role: 'system',
-      content: existingContent
-        ? '你是一个严格的知识库追加编辑助手。核心原则：已有内容必须原样保留（逐字、逐段、逐行），只能在末尾追加新信息。绝不修改、删除、重排已有内容。只返回合并后的 Markdown 内容，不要加额外解释或前缀。'
-        : '你是一个精确的知识库编辑助手。只返回格式化后的 Markdown 内容，不要加额外解释或前缀。',
+      content: existingContent ? MERGE_SYSTEM_PROMPT_EXISTING : MERGE_SYSTEM_PROMPT_NEW,
     },
     { role: 'user', content: prompt },
   ];
@@ -181,7 +140,7 @@ export async function mergeChapter(
 
     // 如果评分极低（<0.3），说明内容大量丢失，补充更严格的指令
     if (reviewResult.score < 0.3) {
-      feedback += '\n\n紧急：旧版本内容大量丢失！请严格逐字保留 [保留范围] 内的全部内容，只能追加，不能删除任何已有文字。';
+      feedback += '\n\n' + MERGE_EMERGENCY_FEEDBACK;
     }
   }
 
