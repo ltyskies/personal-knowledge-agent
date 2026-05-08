@@ -49,7 +49,7 @@ export type AgentEvent =
 
 // ===== 常量 =====
 
-const DEFAULT_CONTEXT_WINDOW = 16000;
+const DEFAULT_CONTEXT_WINDOW = 360000;
 
 const TOOL_SYSTEM_PROMPT_BASE = `You are a personal knowledge management assistant. You have access to a local Markdown knowledge base with the following tools:
 

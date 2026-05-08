@@ -153,6 +153,14 @@ export interface MergeInput {
   chapterMatch: ChapterMatch;
 }
 
+/** 审查结果 — Sub Agent 对合并产出的校验结果 */
+export interface ReviewResult {
+  approved: boolean;           // 是否通过审查
+  issues: string[];            // 发现的问题列表（驳回时非空）
+  score: number;               // 内容保留评分 0-1（1=完全保留）
+  summary: string;             // 审查摘要
+}
+
 /** 合并结果 — 包含合并前后的完整信息 */
 export interface MergeResult {
   filePath: string;
@@ -166,6 +174,7 @@ export interface MergeResult {
   subdomain: string;
   title: string;
   recordedMtime?: string;   // 合并时记录的文件 mtime（由 ipc-handlers 补充）
+  reviewResult?: ReviewResult;  // Sub Agent 审查结果（新建章节时为 undefined）
 }
 
 /** 写入请求 — 用户确认后的写入参数 */

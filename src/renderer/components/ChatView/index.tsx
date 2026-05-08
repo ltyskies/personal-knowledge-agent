@@ -56,13 +56,20 @@ export default function ChatView({
   const [mergeDone, setMergeDone] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // 新消息到达时，仅当用户接近底部才自动滚动（允许用户向上翻看历史）
+  // 进入对话模块时自动滚到底部
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView();
+  }, []);
+
+  // 新消息到达时自动滚动：用户发送消息时无条件滚动，AI 回复时仅当用户接近底部才滚动
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
+    const lastMsg = messages[messages.length - 1];
+    const isUserMessage = lastMsg?.role === 'user';
     const threshold = 100;
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    if (distanceFromBottom < threshold) {
+    if (isUserMessage || distanceFromBottom < threshold) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, extractedItems, isAutoMerging, autoMergeProgress]);
