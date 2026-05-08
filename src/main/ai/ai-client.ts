@@ -17,7 +17,7 @@ import type { Message, Chunk, StreamErrorType } from '../../shared/types';
 // 从上下文压缩器重新导出 token 估算函数
 export { estimateTokenCount } from './context-compressor';
 
-const CONNECTION_TIMEOUT = 60_000;
+const CONNECTION_TIMEOUT = 360_000;
 
 interface ChatOptions {
   temperature?: number;
