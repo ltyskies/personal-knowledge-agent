@@ -122,6 +122,8 @@ export function registerHandlers(): void {
         KNOWLEDGE_BASE_TOOLS,
         compressedMessages,
         abortController.signal,
+        10,               // maxIterations
+        contextWindow,    // contextWindow
       );
 
       for await (const event of agentStream) {
@@ -135,6 +137,9 @@ export function registerHandlers(): void {
           case 'tool_call':
           case 'tool_result':
             sender.send('chat:stream-tool-event', event);
+            break;
+          case 'context_pressure':
+            sender.send('chat:context-pressure', event);
             break;
         }
       }

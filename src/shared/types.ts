@@ -228,3 +228,16 @@ export interface ToolResultEvent {
 }
 
 export type ToolStreamEvent = ToolCallEvent | ToolResultEvent;
+
+// ===== 上下文压力事件 =====
+
+/** 上下文使用率超过阈值时由 agent 循环推送 */
+export interface ContextPressureEvent {
+  type: 'context_pressure';
+  /** 当前使用率 0-1 */
+  usageRatio: number;
+  /** 剩余 token 预算 */
+  remainingTokens: number;
+  /** 压力等级 */
+  level: 'moderate' | 'high' | 'critical';
+}
