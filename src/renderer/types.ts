@@ -11,7 +11,7 @@
  * - 'chat': 对话模式（与 AI 聊天 + 知识提取和合并）
  * - 'read': 阅读模式（浏览知识库中已存储的章节内容）
  */
-import type { Chunk, KnowledgeItem, ChapterMatch, ConversationMeta, Conversation, StreamErrorInfo } from '../shared/types';
+import type { Chunk, KnowledgeItem, ChapterMatch, ConversationMeta, Conversation, StreamErrorInfo, ToolStreamEvent } from '../shared/types';
 
 export type ViewMode = 'chat' | 'read';
 
@@ -42,6 +42,8 @@ declare global {
         offError: () => void;
         stop: () => Promise<void>;
         extract: (messages: unknown[]) => Promise<KnowledgeItem[]>;
+        onToolEvent: (callback: (event: ToolStreamEvent) => void) => void;
+        offToolEvent: () => void;
       };
       dialog: {
         selectDirectory: () => Promise<string | null>;

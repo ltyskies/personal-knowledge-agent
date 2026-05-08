@@ -25,7 +25,9 @@ import { existsSync, mkdirSync } from 'fs';
 import { loadConfig, saveConfig } from '../storage/config';
 import { readMarkdownFile, resolveChapter, writeChapterContent } from '../knowledge/file-system';
 import { getOrBuildIndex, buildIndex, saveIndex } from '../knowledge/index-builder';
-import { streamChat, chatSync, StreamError } from '../ai/ai-client';
+import { chatSync, createChatModel, toLangChainMessages, StreamError } from '../ai/ai-client';
+import { runAgentLoop } from '../ai/agent-loop';
+import { KNOWLEDGE_BASE_TOOLS } from '../ai/tools';
 import { matchChapters } from '../knowledge/chapter-matcher';
 import { mergeChapter } from '../knowledge/knowledge-merger';
 import { getStatus, commit, initRepo } from '../git/git-ops';
@@ -103,16 +105,29 @@ export function registerHandlers(): void {
     activeStreamController = abortController;
 
     try {
-      const stream = streamChat(
-        config.api.baseURL,
-        config.api.key,
-        config.api.model,
-        messages,
-        undefined,
+      const chatModel = createChatModel(config.api.baseURL, config.api.key, config.api.model);
+      const lcMessages = toLangChainMessages(messages);
+
+      const agentStream = runAgentLoop(
+        chatModel,
+        KNOWLEDGE_BASE_TOOLS,
+        lcMessages,
         abortController.signal,
       );
-      for await (const chunk of stream) {
-        sender.send('chat:stream-chunk', chunk);
+
+      for await (const event of agentStream) {
+        switch (event.type) {
+          case 'text':
+            sender.send('chat:stream-chunk', { content: event.content, done: false });
+            break;
+          case 'done':
+            sender.send('chat:stream-chunk', { content: '', done: true });
+            break;
+          case 'tool_call':
+          case 'tool_result':
+            sender.send('chat:stream-tool-event', event);
+            break;
+        }
       }
     } catch (err) {
       if (err instanceof StreamError) {

@@ -54,6 +54,12 @@ const api = {
     },
     stop: (): Promise<void> => ipcRenderer.invoke('chat:stop'),
     extract: (messages: unknown[]): Promise<unknown> => ipcRenderer.invoke('chat:extract', messages),
+    onToolEvent: (callback: (event: unknown) => void) => {
+      ipcRenderer.on('chat:stream-tool-event', (_event, data) => callback(data));
+    },
+    offToolEvent: () => {
+      ipcRenderer.removeAllListeners('chat:stream-tool-event');
+    },
   },
   dialog: {
     selectDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:selectDirectory'),

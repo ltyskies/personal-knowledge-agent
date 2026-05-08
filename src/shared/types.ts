@@ -207,3 +207,22 @@ export interface GitStatus {
   dirty: boolean;           // 是否有未提交的变更
   changedFiles: string[];
 }
+
+// ===== Tool-call streaming events =====
+
+export interface ToolCallEvent {
+  type: 'tool_call';
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
+export interface ToolResultEvent {
+  type: 'tool_result';
+  toolCallId: string;
+  toolName: string;
+  result: string;
+  error?: string;
+}
+
+export type ToolStreamEvent = ToolCallEvent | ToolResultEvent;
