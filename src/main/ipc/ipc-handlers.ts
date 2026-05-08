@@ -25,12 +25,12 @@ import { existsSync, mkdirSync } from 'fs';
 import { loadConfig, saveConfig } from '../storage/config';
 import { readMarkdownFile, resolveChapter, writeChapterContent } from '../knowledge/file-system';
 import { getOrBuildIndex, buildIndex, saveIndex } from '../knowledge/index-builder';
-import { streamChat, chatSync } from '../ai/ai-client';
+import { streamChat, chatSync, StreamError } from '../ai/ai-client';
 import { matchChapters } from '../knowledge/chapter-matcher';
 import { mergeChapter } from '../knowledge/knowledge-merger';
 import { getStatus, commit, initRepo } from '../git/git-ops';
 import { listConversations, getConversation, saveConversation, deleteConversation, createConversation } from '../storage/conversation-store';
-import type { AppConfig, FileNode, SectionNode, FileEntry, IndexData, Message, KnowledgeItem, ChapterMatch, MergeInput, MergeResult, WriteInput, GitStatus, Conversation, ConversationMeta } from '../../shared/types';
+import type { AppConfig, FileNode, SectionNode, FileEntry, IndexData, Message, KnowledgeItem, ChapterMatch, MergeInput, MergeResult, WriteInput, GitStatus, Conversation, ConversationMeta, StreamErrorInfo } from '../../shared/types';
 
 /** 将内部 FileEntry 转换为仅含 UI 需要字段的 FileNode 树形结构 */
 function fileEntryToNode(entry: FileEntry): FileNode {
@@ -86,19 +86,64 @@ export function registerHandlers(): void {
 
   // ==================== AI 流式对话 ====================
 
+  // 当前活跃的流控制器 — 用于实现用户主动停止
+  let activeStreamController: AbortController | null = null;
+
   ipcMain.handle('chat:stream', async (event, messages: Message[]): Promise<void> => {
     const config = loadConfig();
     const sender = event.sender;
 
+    // 每次新请求前确保上一轮流已终止
+    if (activeStreamController) {
+      activeStreamController.abort();
+      activeStreamController = null;
+    }
+
+    const abortController = new AbortController();
+    activeStreamController = abortController;
+
     try {
-      const stream = streamChat(config.api.baseURL, config.api.key, config.api.model, messages);
+      const stream = streamChat(
+        config.api.baseURL,
+        config.api.key,
+        config.api.model,
+        messages,
+        undefined,
+        abortController.signal,
+      );
       for await (const chunk of stream) {
-        // 逐块推送到渲染进程 — 通道名加 -chunk 后缀表示流式数据传输
         sender.send('chat:stream-chunk', chunk);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      sender.send('chat:stream-error', msg);
+      if (err instanceof StreamError) {
+        // 用户主动停止 — 不推送错误，前端已在 UI 侧自己处理状态
+        if (err.type === 'user_aborted') return;
+
+        const errorInfo: StreamErrorInfo = {
+          type: err.type,
+          message: err.message,
+          retryable: err.retryable,
+        };
+        sender.send('chat:stream-error', errorInfo);
+      } else {
+        const errorInfo: StreamErrorInfo = {
+          type: 'api_error',
+          message: err instanceof Error ? err.message : String(err),
+          retryable: true,
+        };
+        sender.send('chat:stream-error', errorInfo);
+      }
+    } finally {
+      if (activeStreamController === abortController) {
+        activeStreamController = null;
+      }
+    }
+  });
+
+  ipcMain.handle('chat:stop', async (): Promise<void> => {
+    if (activeStreamController) {
+      activeStreamController.abort();
+      activeStreamController = null;
     }
   });
 

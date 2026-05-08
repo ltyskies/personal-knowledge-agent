@@ -3,7 +3,9 @@
  *
  * 核心聊天界面，包含：
  * - 消息列表（用户消息蓝色气泡右对齐，AI 回复 Markdown 渲染左对齐）
- * - 流式输出光标闪烁动画
+ * - 流式输出光标动画
+ * - assistant 消息状态标签（interrupted / failed）+ 重试按钮
+ * - 流式输出停止按钮
  * - 提取知识点按钮（对话结束后出现）
  * - 自动合并进度指示器
  * - Toast 通知（合并完成 / 错误）
@@ -11,10 +13,9 @@
  * 数据由父组件 App 通过 props 传入，状态管理在 useChat hook 中完成。
  */
 import { useRef, useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Sparkles, X, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Sparkles, X, CheckCircle2, AlertTriangle, RefreshCw, Square } from 'lucide-react';
 import type { Message, KnowledgeItem } from '../../../shared/types';
+import MarkdownRenderer from './MarkdownRenderer';
 import InputArea from './InputArea';
 
 interface ChatViewProps {
@@ -22,6 +23,8 @@ interface ChatViewProps {
   isStreaming: boolean;
   error: string | null;
   onSend: (text: string) => void;
+  onRetry: (requestId: string) => void;
+  onStop: () => void;
   onClearError: () => void;
   isExtracting: boolean;
   extractError: string | null;
@@ -37,6 +40,8 @@ export default function ChatView({
   isStreaming,
   error,
   onSend,
+  onRetry,
+  onStop,
   onClearError,
   isExtracting,
   extractError,
@@ -81,10 +86,44 @@ export default function ChatView({
   const hasMessages = messages.length > 0;
   const showExtractButton = hasMessages && !isStreaming && !extractedItems && !isExtracting && !isAutoMerging;
 
+  function renderMessageStatus(msg: Message) {
+    if (msg.role !== 'assistant') return null;
+    if (!msg.status || msg.status === 'pending' || msg.status === 'completed') return null;
+
+    const config = {
+      interrupted: { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-800', text: 'text-amber-600 dark:text-amber-400', label: '生成中断' },
+      failed: { bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-800', text: 'text-red-600 dark:text-red-400', label: '生成失败' },
+    }[msg.status];
+
+    if (!config) return null;
+
+    return (
+      <div className={`mt-2 flex items-center gap-2 text-xs ${config.text}`}>
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded ${config.bg} ${config.border}`}>
+          <AlertTriangle size={12} />
+          {config.label}
+        </span>
+        {msg.errorMessage && (
+          <span className="opacity-75 truncate max-w-[200px]">{msg.errorMessage}</span>
+        )}
+        {msg.retryable !== false && msg.requestId && (
+          <button
+            onClick={() => onRetry(msg.requestId!)}
+            disabled={isStreaming}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-50"
+          >
+            <RefreshCw size={12} />
+            重试
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {/* 错误提示 */}
+        {/* 错误提示 — 全局错误条（消息级别错误在气泡内展示） */}
         {error && (
           <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
             <span>{error}</span>
@@ -119,7 +158,7 @@ export default function ChatView({
         ) : (
           messages.map((msg, i) => (
             <div
-              key={i}
+              key={`${msg.requestId || i}-${i}`}
               className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}
             >
               <div
@@ -132,20 +171,30 @@ export default function ChatView({
                 {msg.role === 'user' ? (
                   msg.content
                 ) : (
-                  <div className="markdown-body">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.content || (isStreaming && i === messages.length - 1 ? '...' : '')}
-                    </ReactMarkdown>
-                  </div>
+                  <MarkdownRenderer
+                    content={msg.content}
+                    status={msg.status}
+                  />
                 )}
               </div>
+              {/* 状态标签 + 重试按钮 */}
+              {renderMessageStatus(msg)}
             </div>
           ))
         )}
 
-        {/* 流式输出光标动画 — 仅在 AI 正在回复且有内容时显示 */}
-        {isStreaming && messages.length > 0 && messages[messages.length - 1].content && (
-          <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />
+        {/* 流式输出光标动画 + 停止按钮 */}
+        {isStreaming && (
+          <div className="flex items-center gap-3 ml-1">
+            <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse" />
+            <button
+              onClick={onStop}
+              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs border border-gray-300 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <Square size={12} />
+              停止生成
+            </button>
+          </div>
         )}
 
         {/* 提取知识点按钮 — 对话结束、未提取、未合并时显示 */}

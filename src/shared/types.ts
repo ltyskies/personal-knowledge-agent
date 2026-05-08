@@ -85,9 +85,38 @@ export interface SectionNode {
 
 // ===== AI 对话 =====
 
+/** 流式请求状态 */
+export type StreamStatus = 'pending' | 'completed' | 'interrupted' | 'failed';
+
+/** 流式错误类型 — 用于前后端统一归因 */
+export type StreamErrorType =
+  | 'connection_timeout'
+  | 'stream_timeout'
+  | 'network_error'
+  | 'api_error'
+  | 'unexpected_eof'
+  | 'parse_error'
+  | 'user_aborted'
+  | 'non_stream_response';
+
+/** 结构化流错误 — Main 通过 IPC 推送给 Renderer */
+export interface StreamErrorInfo {
+  type: StreamErrorType;
+  message: string;
+  retryable: boolean;
+}
+
 export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  /** 请求标识 — 同一轮 user+assistant 共享，用于精确定位和重试 */
+  requestId?: string;
+  /** 流式请求状态 — 仅 user/assistant 消息使用 */
+  status?: StreamStatus;
+  /** 失败时是否可重试 */
+  retryable?: boolean;
+  /** 失败时的错误描述 */
+  errorMessage?: string;
 }
 
 /** 流式响应的单个数据块 — done=true 表示流结束 */

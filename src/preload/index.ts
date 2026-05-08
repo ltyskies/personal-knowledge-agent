@@ -45,12 +45,14 @@ const api = {
     offChunk: () => {
       ipcRenderer.removeAllListeners('chat:stream-chunk');
     },
-    onError: (callback: (error: string) => void) => {
+    onError: (callback: (error: unknown) => void) => {
+      // 监听主进程推送的结构化错误（chat:stream-error 通道）
       ipcRenderer.on('chat:stream-error', (_event, error) => callback(error));
     },
     offError: () => {
       ipcRenderer.removeAllListeners('chat:stream-error');
     },
+    stop: (): Promise<void> => ipcRenderer.invoke('chat:stop'),
     extract: (messages: unknown[]): Promise<unknown> => ipcRenderer.invoke('chat:extract', messages),
   },
   dialog: {

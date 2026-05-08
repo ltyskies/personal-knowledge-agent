@@ -60,7 +60,7 @@ export default function App() {
     setTreeRefreshKey((k) => k + 1);
   }, []);
 
-  const { messages, isStreaming, error, send, clearError, isExtracting, extractError, extractedItems, chapterMatches, extract, clearExtraction, isAutoMerging, autoMergeProgress } = useChat({
+  const { messages, isStreaming, error, send, retry, stop, clearError, isExtracting, extractError, extractedItems, chapterMatches, extract, clearExtraction, isAutoMerging, autoMergeProgress } = useChat({
     conversationId: currentConversationId,
     onMessagesChange: handleMessagesChange,
     onAutoMergeComplete: handleMergeComplete,
@@ -226,6 +226,8 @@ export default function App() {
             isStreaming={isStreaming}
             error={error}
             onSend={send}
+            onRetry={retry}
+            onStop={stop}
             onClearError={clearError}
             isExtracting={isExtracting}
             extractError={extractError}

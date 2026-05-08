@@ -11,7 +11,7 @@
  * - 'chat': 对话模式（与 AI 聊天 + 知识提取和合并）
  * - 'read': 阅读模式（浏览知识库中已存储的章节内容）
  */
-import type { Chunk, KnowledgeItem, ChapterMatch, ConversationMeta, Conversation } from '../shared/types';
+import type { Chunk, KnowledgeItem, ChapterMatch, ConversationMeta, Conversation, StreamErrorInfo } from '../shared/types';
 
 export type ViewMode = 'chat' | 'read';
 
@@ -38,8 +38,9 @@ declare global {
         stream: (messages: unknown[]) => Promise<void>;
         onChunk: (callback: (chunk: Chunk) => void) => void;
         offChunk: () => void;
-        onError: (callback: (error: string) => void) => void;
+        onError: (callback: (error: StreamErrorInfo) => void) => void;
         offError: () => void;
+        stop: () => Promise<void>;
         extract: (messages: unknown[]) => Promise<KnowledgeItem[]>;
       };
       dialog: {
