@@ -203,7 +203,7 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
         setMessages((prev) =>
           prev.map((m) =>
             m.requestId === requestId && m.role === 'assistant'
-              ? { ...m, content: finalContent, status: 'completed' as StreamStatus, errorMessage: undefined }
+              ? { ...m, content: finalContent, status: 'completed' as StreamStatus, errorMessage: undefined, reasoning_content: c.reasoning_content }
               : m,
           ),
         );
@@ -293,7 +293,11 @@ export function useChat({ conversationId, onMessagesChange, onAutoMergeComplete 
         }
         return true;
       })
-      .map((m) => ({ role: m.role, content: m.content }));
+      .map((m) => {
+        const msg: Message = { role: m.role, content: m.content };
+        if (m.reasoning_content) msg.reasoning_content = m.reasoning_content;
+        return msg;
+      });
   }
 
   const send = useCallback(

@@ -39,6 +39,8 @@ export interface AgentTextEvent {
 
 export interface AgentDoneEvent {
   type: 'done';
+  /** 思维链推理内容（需保存到 Message 供下轮回传） */
+  reasoning_content?: string;
 }
 
 export type AgentEvent =
@@ -109,6 +111,8 @@ export async function* runAgentLoop(
 
   // 上次发送压力事件的等级（避免重复发送）
   let lastPressureLevelSent = initialPressure.level;
+  // 最近一轮 assistant 消息的推理内容（供 done 事件回传）
+  let lastReasoningContent: string | undefined;
 
   for (let iteration = 0; iteration < effectiveMaxIterations; iteration++) {
     if (signal?.aborted) break;
@@ -154,12 +158,14 @@ export async function* runAgentLoop(
 
       // 将该轮 assistant 回复加入对话历史
       conversationMessages.push(gathered);
+      lastReasoningContent = (gathered as any).additional_kwargs?.reasoning_content;
 
       // 检测 tool_calls
       const toolCalls = extractToolCalls(gathered);
 
       if (toolCalls.length === 0) {
-        yield { type: 'done' };
+        const reasoningContent = (gathered as any).additional_kwargs?.reasoning_content;
+        yield { type: 'done', reasoning_content: reasoningContent };
         return;
       }
 
@@ -278,7 +284,7 @@ export async function* runAgentLoop(
     }
   }
 
-  yield { type: 'done' };
+  yield { type: 'done', reasoning_content: lastReasoningContent };
 }
 
 // ===== 辅助函数 =====

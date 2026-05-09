@@ -51,7 +51,10 @@ export function toLangChainMessages(messages: Message[]): BaseMessage[] {
       case 'user':
         return new HumanMessage(m.content);
       case 'assistant':
-        return new AIMessage(m.content);
+        return new AIMessage({
+          content: m.content,
+          additional_kwargs: m.reasoning_content ? { reasoning_content: m.reasoning_content } : {},
+        });
       case 'system':
         return new SystemMessage(m.content);
       default:

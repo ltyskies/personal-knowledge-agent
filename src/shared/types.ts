@@ -111,6 +111,8 @@ export interface StreamErrorInfo {
 export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  /** 思维链推理内容（DeepSeek 等推理模型需要在下轮对话中回传） */
+  reasoning_content?: string;
   /** 请求标识 — 同一轮 user+assistant 共享，用于精确定位和重试 */
   requestId?: string;
   /** 流式请求状态 — 仅 user/assistant 消息使用 */
@@ -125,6 +127,8 @@ export interface Message {
 export interface Chunk {
   content: string;
   done: boolean;
+  /** 思维链推理内容（仅在 done=true 时可能携带，需保存到 Message 供下轮回传） */
+  reasoning_content?: string;
 }
 
 // ===== 知识提取 =====

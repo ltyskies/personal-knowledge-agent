@@ -133,7 +133,7 @@ export function registerHandlers(): void {
             sender.send('chat:stream-chunk', { content: event.content, done: false });
             break;
           case 'done':
-            sender.send('chat:stream-chunk', { content: '', done: true });
+            sender.send('chat:stream-chunk', { content: '', done: true, reasoning_content: event.reasoning_content });
             break;
           case 'tool_call':
           case 'tool_result':
